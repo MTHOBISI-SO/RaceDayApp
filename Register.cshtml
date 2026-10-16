@@ -1,0 +1,76 @@
+@model RegisterViewModel
+@{
+    ViewData["Title"] = "Register";
+}
+
+<div class="auth-box wide">
+    <p class="eyebrow">CREATE ACCOUNT</p>
+    <h1>Participant Registration</h1>
+
+    <div asp-validation-summary="ModelOnly" class="validation"></div>
+
+    <form asp-action="Register" method="post" class="form-grid">
+        <div>
+            <label asp-for="FirstName"></label>
+            <input asp-for="FirstName" />
+            <span asp-validation-for="FirstName"></span>
+        </div>
+
+        <div>
+            <label asp-for="LastName"></label>
+            <input asp-for="LastName" />
+            <span asp-validation-for="LastName"></span>
+        </div>
+
+        <div>
+            <label asp-for="DateOfBirth"></label>
+            <input asp-for="DateOfBirth" />
+            <span asp-validation-for="DateOfBirth"></span>
+        </div>
+
+        <div>
+            <label asp-for="Phone"></label>
+            <input asp-for="Phone" />
+            <span asp-validation-for="Phone"></span>
+        </div>
+
+        <div>
+            <label asp-for="Email"></label>
+            <input asp-for="Email" />
+            <span asp-validation-for="Email"></span>
+        </div>
+
+        <div>
+            <label asp-for="Username"></label>
+            <input asp-for="Username" />
+            <span asp-validation-for="Username"></span>
+        </div>
+
+        <div>
+            <label asp-for="Password"></label>
+            <input asp-for="Password" />
+            <span asp-validation-for="Password"></span>
+        </div>
+
+        <div>
+            <label asp-for="ConfirmPassword"></label>
+            <input asp-for="ConfirmPassword" />
+            <span asp-validation-for="ConfirmPassword"></span>
+        </div>
+    </form>
+
+    <form asp-action="Register" method="post">
+        <input type="hidden" asp-for="FirstName" />
+        <input type="hidden" asp-for="LastName" />
+        <input type="hidden" asp-for="DateOfBirth" />
+        <input type="hidden" asp-for="Email" />
+        <input type="hidden" asp-for="Phone" />
+        <input type="hidden" asp-for="Username" />
+        <input type="hidden" asp-for="Password" />
+        <input type="hidden" asp-for="ConfirmPassword" />
+        <input type="hidden" asp-for="Role" />
+        <button class="btn primary full" type="submit">Create Account</button>
+    </form>
+
+    <p>Already registered? <a asp-action="Login">Login here</a>.</p>
+</div>

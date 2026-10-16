@@ -1,0 +1,54 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Home";
+}
+
+<section class="hero">
+    <div>
+        <p class="eyebrow">RACE MANAGEMENT SYSTEM</p>
+        <h1>RaceDay</h1>
+        <p>Find races, view venues and manage your race participation from one place.</p>
+        <a class="btn primary" asp-controller="Races" asp-action="Index">View Races</a>
+    </div>
+</section>
+
+<h2>Upcoming Races</h2>
+
+<div class="cards">
+@foreach (var race in Model.UpcomingRaces)
+{
+    <article class="card">
+        <div class="date">@race.RaceDate.ToString("dd MMM yyyy")</div>
+        <h3>@race.RaceName</h3>
+        <p><strong>Type:</strong> @race.RaceType</p>
+        <p><strong>Status:</strong> @race.Status</p>
+        <p><strong>Venue:</strong> @(race.Venue?.VenueName ?? $"Venue #{race.VenueID}")</p>
+        <a class="btn" asp-controller="Races" asp-action="Details" asp-route-id="@race.RaceID">View Details</a>
+    </article>
+}
+</div>
+
+<h2>Race Venues</h2>
+<div class="table-wrap">
+<table>
+    <thead>
+        <tr>
+            <th>Venue</th>
+            <th>City</th>
+            <th>Address</th>
+            <th>Capacity</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var venue in Model.Venues)
+    {
+        <tr>
+            <td>@venue.VenueName</td>
+            <td>@venue.City</td>
+            <td>@venue.Address</td>
+            <td>@venue.Capacity.ToString("N0")</td>
+        </tr>
+    }
+    </tbody>
+</table>
+</div>

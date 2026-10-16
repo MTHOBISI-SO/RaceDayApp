@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - RaceDay</title>
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body>
+<header>
+    <nav class="navbar">
+        <a class="brand" asp-controller="Home" asp-action="Index">RaceDay</a>
+        <div class="navlinks">
+            <a asp-controller="Home" asp-action="Index">Home</a>
+            <a asp-controller="Races" asp-action="Index">Races</a>
+
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <span class="welcome">Welcome, @User.Identity.Name</span>
+                <form asp-controller="Account" asp-action="Logout" method="post">
+                    <button class="nav-button" type="submit">Logout</button>
+                </form>
+            }
+            else
+            {
+                <a asp-controller="Account" asp-action="Login">Login</a>
+                <a class="nav-button" asp-controller="Account" asp-action="Register">Register</a>
+            }
+        </div>
+    </nav>
+</header>
+
+<main class="container">
+    @if (TempData["Message"] is string message)
+    {
+        <div class="alert">@message</div>
+    }
+
+    @RenderBody()
+</main>
+
+<footer>
+    <p>RaceDay &copy; @DateTime.Now.Year | Race Management System</p>
+</footer>
+
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

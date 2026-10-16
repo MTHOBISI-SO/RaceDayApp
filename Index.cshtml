@@ -1,0 +1,24 @@
+@model List<Race>
+@{
+    ViewData["Title"] = "Races";
+}
+
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">RACE EVENTS</p>
+        <h1>Available Races</h1>
+    </div>
+</div>
+
+<div class="cards">
+@foreach (var race in Model.OrderBy(r => r.RaceDate))
+{
+    <article class="card">
+        <div class="date">@race.RaceDate.ToString("dd MMM yyyy")</div>
+        <h3>@race.RaceName</h3>
+        <p><strong>Type:</strong> @race.RaceType</p>
+        <p><strong>Status:</strong> @race.Status</p>
+        <a class="btn primary" asp-action="Details" asp-route-id="@race.RaceID">View Race</a>
+    </article>
+}
+</div>

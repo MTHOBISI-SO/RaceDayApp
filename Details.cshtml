@@ -1,0 +1,30 @@
+@model Race
+@{
+    ViewData["Title"] = Model.RaceName;
+}
+
+<div class="details">
+    <p class="eyebrow">RACE DETAILS</p>
+    <h1>@Model.RaceName</h1>
+
+    <div class="detail-grid">
+        <div><span>Date</span><strong>@Model.RaceDate.ToString("dddd, dd MMMM yyyy")</strong></div>
+        <div><span>Race Type</span><strong>@Model.RaceType</strong></div>
+        <div><span>Status</span><strong>@Model.Status</strong></div>
+        <div><span>Venue ID</span><strong>@Model.VenueID</strong></div>
+    </div>
+
+    @if (User.IsInRole("Participant"))
+    {
+        <form asp-action="Register" method="post">
+            <input type="hidden" name="raceId" value="@Model.RaceID" />
+            <button class="btn primary" type="submit">Register for this race</button>
+        </form>
+    }
+    else if (!User.Identity?.IsAuthenticated == true)
+    {
+        <p><a asp-controller="Account" asp-action="Login">Log in</a> as a Participant to register.</p>
+    }
+
+    <a class="back" asp-action="Index">← Back to races</a>
+</div>
