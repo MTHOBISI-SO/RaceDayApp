@@ -1,0 +1,15 @@
+# Start the MVC web app with ONE command:
+#     docker compose up --build
+# The API still runs on your machine (see README) and the container reaches it
+# through host.docker.internal.
+services:
+  raceday-web:
+    build:
+      context: ./RaceDay.Web
+    image: raceday-web
+    ports:
+      - "8080:8080"
+    environment:
+      ApiSettings__BaseUrl: "http://host.docker.internal:5271/"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # needed on Linux; harmless on Windows/Mac
