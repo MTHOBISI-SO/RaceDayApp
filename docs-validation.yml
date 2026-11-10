@@ -1,0 +1,40 @@
+name: Validate Repository Documentation Structure
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  validate-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Verify Docs Directory & Files
+        run: |
+          if [ ! -d "docs" ]; then
+            echo "Error: /docs directory does not exist!"
+            exit 1
+          fi
+
+          echo "Checking required files in /docs..."
+
+          if [ ! -f "docs/erd.png" ] && [ ! -f "docs/erd.pdf" ]; then
+            echo "Error: ERD file is missing in /docs!"
+            exit 1
+          fi
+
+          if [ ! -f "docs/endpoint-plan.md" ] && [ ! -f "docs/endpoint-plan.pdf" ] && [ ! -f "docs/Endpoint Plan.pdf" ]; then
+            echo "Error: Endpoint plan is missing in /docs!"
+            exit 1
+          fi
+
+          if [ ! -f "docs/schema.sql" ]; then
+            echo "Error: SQL script (schema.sql) is missing in /docs!"
+            exit 1
+          fi
+
+          echo "Validation successful: All required files are present in /docs!"

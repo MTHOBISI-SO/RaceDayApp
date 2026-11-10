@@ -1,0 +1,46 @@
+name: Build and Test (API + MVC)
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      # ---- Part 2: API + tests ----
+      - name: Restore API solution
+        run: dotnet restore RaceDay.API/RaceDay.API.sln
+
+      - name: Build API solution
+        run: dotnet build RaceDay.API/RaceDay.API.sln --no-restore -c Release
+
+      - name: Run API unit tests
+        run: dotnet test RaceDay.API/RaceDay.API.sln --no-build -c Release --verbosity normal
+
+      # ---- Part 3: MVC web app ----
+      - name: Restore MVC project
+        run: dotnet restore RaceDay.Web/RaceDay.Web.csproj
+
+      - name: Build MVC project
+        run: dotnet build RaceDay.Web/RaceDay.Web.csproj --no-restore -c Release
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Build MVC Docker image
+        run: docker build -t raceday-web ./RaceDay.Web

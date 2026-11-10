@@ -1,94 +1,135 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
-using RaceDayWeb.Models;
-using RaceDayWeb.Services;
+using RaceDay.Web.Filters;
+using RaceDay.Web.Helpers;
+using RaceDay.Web.Models.DTOs;
+using RaceDay.Web.Services;
 
-namespace RaceDayWeb.Controllers;
-
-public class AccountController : Controller
+namespace RaceDay.Web.Controllers
 {
-    private readonly IRaceDayApiClient _api;
-
-    public AccountController(IRaceDayApiClient api) => _api = api;
-
-    [HttpGet]
-    public IActionResult Login(string? returnUrl = null)
+    public class AccountController : Controller
     {
-        ViewBag.ReturnUrl = returnUrl;
-        return View();
-    }
+        private readonly ApiClient _apiClient;
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
-    {
-        if (!ModelState.IsValid) return View(model);
-
-        var result = await _api.LoginAsync(model.Username, model.Password);
-
-        if (!result.Success)
+        public AccountController(ApiClient apiClient)
         {
-            ModelState.AddModelError("", result.Error ?? "Login failed.");
-            return View(model);
+            _apiClient = apiClient;
         }
 
-        await SignInAsync(result.Username!, result.Role!, result.Token!);
-
-        return !string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl)
-            ? Redirect(returnUrl)
-            : RedirectToAction("Index", "Home");
-    }
-
-    [HttpGet]
-    public IActionResult Register() => View(new RegisterViewModel());
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Register(RegisterViewModel model)
-    {
-        if (!ModelState.IsValid) return View(model);
-
-        var result = await _api.RegisterAsync(model);
-
-        if (!result.Success)
+        [HttpGet]
+        public IActionResult Login()
         {
-            ModelState.AddModelError("", result.Error ?? "Registration failed.");
-            return View(model);
+            if (HttpContext.Session.IsLoggedIn()) return RedirectToHome();
+            return View();
         }
 
-        await SignInAsync(result.Username!, result.Role!, result.Token!);
-        return RedirectToAction("Index", "Home");
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Logout()
-    {
-        HttpContext.Session.Remove("JwtToken");
-        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        return RedirectToAction("Index", "Home");
-    }
-
-    public IActionResult AccessDenied() => View();
-
-    private async Task SignInAsync(string username, string role, string token)
-    {
-        HttpContext.Session.SetString("JwtToken", token);
-
-        var claims = new List<Claim>
+        [HttpPost]
+        public async Task<IActionResult> Login(LoginDto model)
         {
-            new(ClaimTypes.Name, username),
-            new(ClaimTypes.Role, role)
-        };
+            if (!ModelState.IsValid) return View(model);
 
-        var identity = new ClaimsIdentity(
-            claims,
-            CookieAuthenticationDefaults.AuthenticationScheme);
+            var result = await _apiClient.LoginAsync(model);
+            if (result == null || string.IsNullOrEmpty(result.Token))
+            {
+                ModelState.AddModelError(string.Empty, "Invalid email or password.");
+                return View(model);
+            }
 
-        await HttpContext.SignInAsync(
-            CookieAuthenticationDefaults.AuthenticationScheme,
-            new ClaimsPrincipal(identity));
+            // Save user info and token to session
+            HttpContext.Session.SetString(SessionHelper.TokenKey, result.Token);
+            HttpContext.Session.SetString(SessionHelper.UserIdKey, result.UserId.ToString());
+            HttpContext.Session.SetString(SessionHelper.UserNameKey, result.UserName ?? string.Empty);
+            HttpContext.Session.SetString(SessionHelper.UserRoleKey, result.RoleName ?? string.Empty);
+
+            return RedirectToHome();
+        }
+
+        [HttpGet]
+        public IActionResult Register()
+        {
+            if (HttpContext.Session.IsLoggedIn()) return RedirectToHome();
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Register(RegisterDto model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            var (success, message) = await _apiClient.RegisterAsync(model);
+            if (!success)
+            {
+                ModelState.AddModelError(string.Empty, message);
+                return View(model);
+            }
+
+            TempData["SuccessMessage"] = message;
+            return RedirectToAction("Login");
+        }
+
+        [HttpPost]
+        public IActionResult Logout()
+        {
+            HttpContext.Session.Clear();
+            return RedirectToAction("Index", "Home");
+        }
+
+        [HttpGet]
+        public IActionResult AccessDenied() => View();
+
+        [SessionAuthorize]
+        [HttpGet("Account/Profile")]
+        public async Task<IActionResult> Profile()
+        {
+            var userId = HttpContext.Session.GetUserId();
+            if (userId == null) return RedirectToAction("Login");
+
+            var profile = await _apiClient.GetUserProfileAsync(userId.Value, HttpContext.Session.Token());
+            if (profile == null)
+            {
+                TempData["ErrorMessage"] = "We could not load your profile right now. Please try again.";
+                return RedirectToAction("Index", "Home");
+            }
+
+            return View(profile);
+        }
+
+        [SessionAuthorize]
+        [HttpPost("Account/Profile")]
+        public async Task<IActionResult> Profile(UpdateProfileDto model)
+        {
+            var userId = HttpContext.Session.GetUserId();
+            if (userId == null) return RedirectToAction("Login");
+            var token = HttpContext.Session.Token();
+
+            if (string.IsNullOrWhiteSpace(model.UserName))
+            {
+                var current = await _apiClient.GetUserProfileAsync(userId.Value, token) ?? new UserProfileDto { Id = userId.Value };
+                ModelState.AddModelError("", "Name cannot be empty.");
+                return View(current);
+            }
+
+            var (success, message) = await _apiClient.UpdateUserProfileAsync(userId.Value, model, token);
+            if (!success)
+            {
+                // Reload the saved profile so the page still shows the email and current picture
+                var profile = await _apiClient.GetUserProfileAsync(userId.Value, token)
+                              ?? new UserProfileDto { Id = userId.Value };
+                profile.UserName = model.UserName;
+                ModelState.AddModelError("", message);
+                return View(profile);
+            }
+
+            // Keep the navbar greeting in sync with the new name
+            HttpContext.Session.SetString(SessionHelper.UserNameKey, model.UserName.Trim());
+
+            TempData["SuccessMessage"] = message;
+            return RedirectToAction("Profile");
+        }
+
+        // Organisers land on their dashboard, participants on the event list
+        private IActionResult RedirectToHome() =>
+            HttpContext.Session.IsOrganiser()
+                ? RedirectToAction("Index", "Admin")
+                : RedirectToAction("Index", "Home");
     }
 }
